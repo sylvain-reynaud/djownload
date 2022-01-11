@@ -3,7 +3,7 @@
 ## Features
 
 - [x] Get a list of songs from a Youtube playlist
-- [ ] CLI
+- [x] CLI
 - [ ] Output the list in a text file
 - [ ] Download the songs with a web API
 - [ ] Download the songs in a folder with the same name as the playlist
