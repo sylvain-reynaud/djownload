@@ -13,7 +13,7 @@ struct CLIOpts {
 }
 
 // Get the list of songs from a youtube playlist url
-async fn get_song_names_from_playlist_url(url: String) -> Result<Vec<Option<String>>> {
+async fn get_song_names_from_playlist_url(url: String) -> Result<Vec<String>> {
     // Read application secret from a file. Sometimes it's easier to compile it directly into
     // the binary. The clientsecret file contains JSON like `{"installed":{"client_id": ... }}`
     let secret = yup_oauth2::read_application_secret("clientsecret.json")
@@ -46,7 +46,7 @@ async fn get_song_names_from_playlist_url(url: String) -> Result<Vec<Option<Stri
 
     match result {
         #[warn(unused_variables)]
-        Ok((response, playlist_item_list_response)) => {
+        Ok((_response, playlist_item_list_response)) => {
             let mut song_names = Vec::new();
             extract_songs(&playlist_item_list_response, &mut song_names);
 
@@ -69,10 +69,10 @@ async fn get_song_names_from_playlist_url(url: String) -> Result<Vec<Option<Stri
 #[async_recursion]
 async fn get_all_songs_from_pagination_recursive(
     playlist_item_list_response: google_youtube3::api::PlaylistItemListResponse,
-    song_names: &mut Vec<Option<String>>,
+    song_names: &mut Vec<String>,
     hub: YouTube,
     url: String,
-) -> Option<Result<Vec<Option<String>>>> {
+) -> Option<Result<Vec<String>>> {
     // extract_songs(&playlist_item_list_response, song_names);
 
     while playlist_item_list_response.next_page_token.is_some() {
@@ -93,7 +93,7 @@ async fn get_all_songs_from_pagination_recursive(
             .await;
 
         match result {
-            Ok((response, playlist_item_list_response)) => {
+            Ok((_response, playlist_item_list_response)) => {
                 // Get the song names from the playlist
                 extract_songs(&playlist_item_list_response, song_names);
                 return get_all_songs_from_pagination_recursive(
@@ -115,16 +115,28 @@ async fn get_all_songs_from_pagination_recursive(
 // Get the list of songs from a youtube playlist url
 fn extract_songs(
     playlist_item_list_response: &google_youtube3::api::PlaylistItemListResponse,
-    song_names: &mut Vec<Option<String>>,
+    song_names: &mut Vec<String>,
 ) {
     // Clone playlist_item_list_response
     let playlist_item_list_response = playlist_item_list_response.clone();
     let items = playlist_item_list_response.items.unwrap();
 
     for playlist_item in items {
-        let snippet = playlist_item.snippet.unwrap();
-        let title = snippet.title;
-        song_names.push(title);
+        let snippet = playlist_item.clone().snippet.unwrap();
+        let title = snippet.title.unwrap();
+        // if the video_owner_channel_title is None then the video is deleted
+        if snippet.video_owner_channel_title.is_none() {
+            continue;
+        }
+        let channel_name = snippet.video_owner_channel_title.unwrap();
+
+        // if video_owner_channel_title contains "- Topic" then the artist is in video_owner_channel_title
+        if channel_name.ends_with("- Topic") {
+            let artist = channel_name.split("- Topic").next().unwrap();
+            song_names.push(format!("{} - {:?}", artist, title));
+        } else {
+            song_names.push(title);
+        }
     }
 }
 
@@ -136,9 +148,37 @@ async fn main() -> Result<()> {
 
     match song_names {
         Ok(song_names) => {
+            let mut clean_song_names = vec![];
             for song_name in song_names {
-                println!("{:?}", song_name);
+                // list of string to remove
+                let to_remove_list = [
+                    "\"",
+                    "(Official Audio)",
+                    "(Official Music)",
+                    "(Official Video)",
+                    "(Official Music Video)",
+                    "(Free Download on SoundCloud)",
+                    "[Official Audio]",
+                    "[Official Video]",
+                    "[Official Video 2019]",
+                    "(videoclip)",
+                    "[OFFICIAL MUSIC VIDEO]",
+                    ".wmv",
+                    "(Lyric Video)",
+                    "(lyrics)",
+                    "(Music Video)",
+                ];
+
+                // for each to_remove items, remove it from song_name
+                let mut clean_song_name = song_name.clone();
+                for to_remote in to_remove_list {
+                    clean_song_name = clean_song_name.replace(to_remote, "");
+                }
+                clean_song_names.push(clean_song_name);
             }
+
+            // Write clean_song_names into a txt file
+            // TODO
         }
         Err(e) => {
             println!("Error: {:?}", e);

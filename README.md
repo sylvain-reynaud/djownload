@@ -5,8 +5,10 @@
 - [x] Get a list of songs from a Youtube playlist
 - [x] CLI
 - [ ] Output the list in a text file
+- [ ] Make different crates
 - [ ] Download the songs with a web API
 - [ ] Download the songs in a folder with the same name as the playlist
+- [ ] CI/CD on new releases : build and push docker image
 
 ## Usage
 
