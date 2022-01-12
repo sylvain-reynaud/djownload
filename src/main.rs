@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::Write;
+
 use async_recursion::async_recursion;
 use clap::Parser;
 use google_youtube3::YouTube;
@@ -8,8 +11,11 @@ use yup_oauth2::{InstalledFlowAuthenticator, InstalledFlowReturnMethod};
 #[clap(version = "0.1", author = "Polytech Montpellier - DevOps")]
 struct CLIOpts {
     /// Youtube Playlist ID
-    #[clap(short, long, default_value = "PL0R2Ug2nH0zoRw5Wc_jclSUxNv1mFH1dW")]
     playlist_id: String,
+
+    /// output file
+    #[clap(short, long)]
+    output_file: Option<String>,
 }
 
 // Get the list of songs from a youtube playlist url
@@ -177,8 +183,9 @@ async fn main() -> Result<()> {
                 clean_song_names.push(clean_song_name);
             }
 
-            // Write clean_song_names into a txt file
-            // TODO
+            if opts.output_file.is_some() {
+                write_songs_to_file(opts.output_file.unwrap(), clean_song_names)?;
+            }
         }
         Err(e) => {
             println!("Error: {:?}", e);
@@ -186,5 +193,12 @@ async fn main() -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+// Write clean_song_names into a txt file
+fn write_songs_to_file(output_file: String, clean_song_names: Vec<String>) -> Result<()> {
+    let mut file = File::create(output_file)?;
+    file.write_all(clean_song_names.join("\n").as_bytes())?;
     Ok(())
 }
