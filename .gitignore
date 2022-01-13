@@ -1,3 +1,5 @@
 **/target
 clientsecret.json
 tokencache.json
+**/download
+.env

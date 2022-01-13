@@ -8,10 +8,14 @@ version = "0.1.0"
 [dependencies]
 async-recursion = "1.0.0"
 clap = {version = "3.0.5", features = ["derive"]}
+futures-util = "0.3.14"
 google-youtube3 = "2.0.0"
 hyper = "^0.14"
 hyper-rustls = "0.22.0"
+indicatif = "0.16.2"
+reqwest = {version = "0.11.3", features = ["stream"]}
 serde = "1.0"
 serde_json = "1.0"
 tokio = {version = "1", features = ["full"]}
+urlencoding = "2.1.0"
 yup-oauth2 = "5.0"
